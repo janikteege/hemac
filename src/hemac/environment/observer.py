@@ -13,7 +13,16 @@ from .world import world_ref_to_game_ref
 class Observer(BaseAgent):
     """Observer class."""
 
-    def __init__(self, dims, speed, observer_id=-1, sensor: Sensor = ForwardFacingCamera(), time_factor: int = 1, discrete_action_space: bool = False, comm_range = 150):
+    def __init__(
+        self,
+        dims,
+        speed,
+        observer_id=-1,
+        sensor: Sensor = ForwardFacingCamera(),
+        time_factor: int = 1,
+        discrete_action_space: bool = False,
+        comm_range=150,
+    ):
         """Overwrite constructor."""
         super().__init__()
         self.img = pygame.image.load(f"{os.path.dirname(__file__)}/img/observer.png")
@@ -37,7 +46,7 @@ class Observer(BaseAgent):
         self.sensor = sensor
 
         if discrete_action_space:
-            self.action_space = gymnasium.spaces.Discrete(5)
+            self.action_space = gymnasium.spaces.Discrete(10)
             self.discrete_action_space = True
         else:
             self.action_space = gymnasium.spaces.Box(low=-100, high=100, shape=(3,))
@@ -98,7 +107,7 @@ class Observer(BaseAgent):
         # communication only possible if near a building
         if self.goal_estimation is not None:
             if not world.obstacles:
-                print(f"no obstacles! infinite comm range")
+                print("no obstacles! infinite comm range")
                 world.observer_communication = self.goal_estimation
             else:
                 for obstacle in world.obstacles:
@@ -117,15 +126,12 @@ class Observer(BaseAgent):
 
     def discrete_to_continuous(self, action):
         """Convert discrete action to box space."""
+        assert action >= 0 and action <= 9
         if action == 0:
             out = [1, 0, 0]
         elif action == 1:
             out = [-1, 0, 0]
-        elif action == 2:
-            out = [0, 0, 0]
-        elif action == 3:
-            out = [0, 0, 0]
-        elif action == 4:
+        else:  # 2-9 to have the same action space as the drone
             out = [0, 0, 0]
         return out
 
@@ -185,5 +191,3 @@ class Observer(BaseAgent):
 def dist(x1, y1, x2, y2):
     """Distance between two points."""
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-

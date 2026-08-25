@@ -151,7 +151,7 @@ class Drone(BaseAgent):
         self.number_of_drones = number_of_drones
 
         if drone_config.get("discrete_action_space", False):
-            self.action_space = gymnasium.spaces.Discrete(5)
+            self.action_space = gymnasium.spaces.Discrete(10)
             self.discrete_action_space = True
         else:
             self.action_space = gymnasium.spaces.Box(low=-self.max_speed, high=self.max_speed, shape=(3,))
@@ -304,6 +304,8 @@ class Drone(BaseAgent):
 
     def discrete_to_continuous(self, action):
         """Convert discrete action to box space."""
+        assert action >= 0 and action <= 9
+        out = [0, 0, 0]
         if action == 0:
             out = [0, 0, 1]
         elif action == 1:
@@ -314,6 +316,17 @@ class Drone(BaseAgent):
             out = [-10, 10, 0]
         elif action == 4:
             out = [-10, -10, 0]
+        # NOTE: add actions for more fine grained control
+        elif action == 5:
+            out = [3, 3, 0]
+        elif action == 6:
+            out = [3, -3, 0]
+        elif action == 7:
+            out = [-3, 3, 0]
+        elif action == 8:
+            out = [-3, -3, 0]
+        elif action == 9:
+            out = [0, 0, 0]
         return out
 
     def process_collision(self, o_rect, o_speed):
