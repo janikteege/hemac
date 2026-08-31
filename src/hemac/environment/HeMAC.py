@@ -338,7 +338,7 @@ class HeMAC:
         self.rewards = dict(zip(self.agents, [0.0] * len(self.agents)))
         self.terminations = dict(zip(self.agents, [False] * len(self.agents)))
         self.truncations = dict(zip(self.agents, [False] * len(self.agents)))
-        self.infos = dict(zip(self.agents, [{}] * len(self.agents)))
+        self.infos = {agent: {} for agent in self.agents}
         self.score = 0
 
     def reset(self, seed=None, options=None):
@@ -370,6 +370,12 @@ class HeMAC:
         self.terminate = False
         self.collided = False
         self.truncate = False
+
+        self.episode_cycles = 0
+        self.targets_reached = 0
+        self.targets_delivered = 0
+        self.targets_reached_this_cycle = 0
+        self.first_target_reached_step = None
 
         self.num_frames = 0
         self.old_dist_to_goal = 1000
@@ -434,6 +440,8 @@ class HeMAC:
         """Execute a step."""
         if active_agent == self.agents[0]:
             self.global_reward = 0
+            self.targets_reached_this_cycle = 0
+
         found_goal = False
         delivered_goal = False
         reward = 0
@@ -471,6 +479,10 @@ class HeMAC:
             for goal in self.goals[:]:
                 if dist(goal.x, goal.y, agent.x, agent.y) < agent.sensing_range:
                     if agent.carried_targets < agent.carrying_capacity:
+                        self.targets_reached += 1
+                        self.targets_reached_this_cycle += 1
+                        if self.first_target_reached_step is None:
+                            self.first_target_reached_step = self.episode_cycles + 1
                         found_goal = True
                         goal.spawn_poi(self.search_area)
                         goal.reset()
@@ -484,6 +496,7 @@ class HeMAC:
                     < agent.sensing_range
                 ):
                     delivered_goal = 1 * agent.carried_targets
+                    self.targets_delivered += agent.carried_targets
                     agent.carried_targets = 0
                 else:
                     for friend in self.agents:
@@ -492,6 +505,7 @@ class HeMAC:
                             if dist(provisioner.x, provisioner.y, agent.x, agent.y) < agent.sensing_range:
                                 delivered_goal = 1 * agent.carried_targets
                                 print(f"agent dropped {agent.carried_targets} targets!")
+                                self.targets_delivered += agent.carried_targets
                                 agent.carried_targets = 0
                                 break
             # global reward
@@ -507,6 +521,7 @@ class HeMAC:
                 if self.render_mode == "human":
                     LOGGER.info(f"observer went out of bounds! pos: {(agent.x, agent.y)}")
             elif agent.goal_in_view:
+                # TODO: this could be positive right?
                 reward = 0
 
         # individual reward
@@ -514,6 +529,8 @@ class HeMAC:
 
         # Update environment and check end of episode
         if agent == self.agents_list[-1]:
+            self.episode_cycles += 1
+
             if self.collided:
                 self.terminate = True
                 if self.render_mode == "human":
@@ -536,7 +553,20 @@ class HeMAC:
                 self.rewards[ag] += self.global_reward
                 self.terminations[ag] = self.terminate
                 self.truncations[ag] = self.truncate
-                self.infos[ag] = {"success": found_goal}
+                self.infos[ag] = {
+                    "success": self.targets_reached_this_cycle > 0,
+                }
+                if i == 0:
+                    self.infos[ag]["hemac_episode"] = {
+                        "targets_reached": self.targets_reached,
+                        "targets_delivered": self.targets_delivered,
+                        "first_target_reached_step": self.first_target_reached_step,
+                        "episode_had_target": self.targets_reached > 0,
+                        "episode_length": self.episode_cycles,
+                        "collision_termination": self.terminate and self.collided,
+                        "terminated": self.terminate,
+                        "truncated": self.truncate,
+                    }
 
             if self.render_mode is not None:
                 self.render()
