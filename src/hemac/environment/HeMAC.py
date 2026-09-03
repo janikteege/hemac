@@ -522,7 +522,7 @@ class HeMAC:
                     LOGGER.info(f"observer went out of bounds! pos: {(agent.x, agent.y)}")
             elif agent.goal_in_view:
                 # TODO: this could be positive right?
-                reward = 0
+                reward += 0.1
 
         # individual reward
         self.rewards[active_agent] = reward
