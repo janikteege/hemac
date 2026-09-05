@@ -135,7 +135,7 @@ class HeMAC:
         self.agent_name_mapping = dict(zip(self.agents, list(range(self.num_agents))))
         self.agents_list = []
 
-        self.old_dist_to_goal = 1000
+        self.old_dist_to_goal = 1000  # NOTE: unused?
 
         # Display screen
         self.render_ratio = render_ratio
@@ -378,7 +378,7 @@ class HeMAC:
         self.first_target_reached_step = None
 
         self.num_frames = 0
-        self.old_dist_to_goal = 1000
+        self.old_dist_to_goal = 1000  # NOTE: unused?
 
         self.reinit()
 
@@ -447,6 +447,11 @@ class HeMAC:
         reward = 0
 
         agent = self.agents_list[self.agent_name_mapping[active_agent]]
+
+        old_dists = {}
+        for goal in self.goals:
+            old_dists[goal] = dist(goal.x, goal.y, agent.x, agent.y)
+
         agent.update(self.area, self.world, action)
 
         # Update position and uncertainty of objectives
@@ -477,7 +482,8 @@ class HeMAC:
                             )
             # POI tracking reward calculation
             for goal in self.goals[:]:
-                if dist(goal.x, goal.y, agent.x, agent.y) < agent.sensing_range:
+                new_dist_to_goal = dist(goal.x, goal.y, agent.x, agent.y)
+                if new_dist_to_goal < agent.sensing_range:
                     if agent.carried_targets < agent.carrying_capacity:
                         self.targets_reached += 1
                         self.targets_reached_this_cycle += 1
@@ -488,6 +494,9 @@ class HeMAC:
                         goal.reset()
                         if self.rescuing_targets:
                             agent.carried_targets += 1
+                elif old_dists[goal] > new_dist_to_goal:
+                    # reward going towards goal
+                    reward += 0.1
 
             if self.rescuing_targets and agent.carried_targets:
                 closest_point_to_base = closest_point_in_rect(self.world.base, agent.rect.center)
