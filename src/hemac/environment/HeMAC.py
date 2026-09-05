@@ -455,6 +455,8 @@ class HeMAC:
         agent.update(self.area, self.world, action)
 
         # Update position and uncertainty of objectives
+        # NOTE: this moves the goal per agent action which is a weird decision??
+        # does not make a lot of sense
         for goal in self.goals:
             goal.move(self.world.obstacles, self.search_area)
 
@@ -496,7 +498,9 @@ class HeMAC:
                             agent.carried_targets += 1
                 elif old_dists[goal] > new_dist_to_goal:
                     # reward going towards goal
-                    reward += 0.1
+                    reward += 0.05
+                elif old_dists[goal] < new_dist_to_goal:
+                    reward -= 0.05
 
             if self.rescuing_targets and agent.carried_targets:
                 closest_point_to_base = closest_point_in_rect(self.world.base, agent.rect.center)
@@ -531,7 +535,7 @@ class HeMAC:
                     LOGGER.info(f"observer went out of bounds! pos: {(agent.x, agent.y)}")
             elif agent.goal_in_view:
                 # TODO: this could be positive right?
-                reward += 0.1
+                reward += 0.05
 
         # individual reward
         self.rewards[active_agent] = reward
