@@ -35,6 +35,7 @@ class Observer(BaseAgent):
         self.out_of_bound = False
         self.goal_in_view = False
         self.goal_estimation = None
+        self.goal_estimation_timestep = None
         self.comm_range = comm_range
 
         self.time_factor = time_factor
@@ -70,8 +71,9 @@ class Observer(BaseAgent):
         """Reset observer."""
         self.sensor.update_poly_points((self.rect.centerx, self.rect.centery), self.orientation, self.altitude)
         self.out_of_bound = False
+        self.goal_in_view = False
         self.goal_estimation = None
-        pass
+        self.goal_estimation_timestep = None
 
     def draw(self, screen):
         """Draw observer."""
@@ -109,11 +111,15 @@ class Observer(BaseAgent):
             if not world.obstacles:
                 print("no obstacles! infinite comm range")
                 world.observer_communication = self.goal_estimation
+                world.observer_communication_valid = True
+                world.observer_communication_timestep = self.goal_estimation_timestep
             else:
                 for obstacle in world.obstacles:
                     obstacle_pos = obstacle.center
                     if dist(obstacle_pos[0], obstacle_pos[1], self.rect.centerx, self.rect.centery) < self.comm_range:
                         world.observer_communication = self.goal_estimation
+                        world.observer_communication_valid = True
+                        world.observer_communication_timestep = self.goal_estimation_timestep
                         break
 
         # make sure the players stay inside the screen
@@ -177,6 +183,7 @@ class Observer(BaseAgent):
                     goal.x,
                     goal.y,
                 )  # hardcoded communication for now
+                self.goal_estimation_timestep = world.timestep
                 obs = [1000, goal.x, goal.y, self.orientation, self.x, self.y, 0, 0, 0, 0, 0]
                 return np.array(obs, np.float32)
             else:

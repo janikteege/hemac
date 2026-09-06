@@ -22,6 +22,7 @@ class World(pygame.sprite.Sprite):
         search_area: Polygon,
         randomizer: np.random.Generator,
         time_factor: int = 1,
+        max_cycles: int = 300,
         initial_prior: bool = False,
     ):
         """Overwrite constructor."""
@@ -42,9 +43,10 @@ class World(pygame.sprite.Sprite):
         self.provisioners = {}
         self.randomizer = randomizer
         self.time_factor = time_factor
+        self.max_cycles = max_cycles
         self.timestep = 0
         self.simulation_start_time = datetime.now(UTC).timestamp()  # set to current timestamp
-        self.observer_communication = [0, 0]
+        self.clear_observer_communication()
 
         # Road network data TODO: random generation
         nodes = {
@@ -65,7 +67,7 @@ class World(pygame.sprite.Sprite):
     def reset(self, poi_list, seed=None, options=None):
         """Reset world."""
         self.timestep = 0
-        self.observer_communication = [self.search_area.centroid.x, self.search_area.centroid.y]
+        self.clear_observer_communication()
         collision = True
         while collision:
             self.base.center = world_ref_to_game_ref(
@@ -82,6 +84,12 @@ class World(pygame.sprite.Sprite):
     def clear_obstacles(self):
         """Remove all obstacles from the world."""
         self.obstacles.clear()  # Clear the list of obstacles
+
+    def clear_observer_communication(self):
+        """Invalidate the last goal estimate communicated by an observer."""
+        self.observer_communication = [0.0, 0.0]
+        self.observer_communication_valid = False
+        self.observer_communication_timestep = 0
 
     def generate_obstacles(self, n_obstacles):
         """Generate random obstacles."""

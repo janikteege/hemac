@@ -225,6 +225,7 @@ class HeMAC:
             search_area=self.search_area,
             randomizer=randomizer,
             time_factor=self.time_factor,
+            max_cycles=max_cycles,
         )
 
         # init observers
@@ -494,6 +495,10 @@ class HeMAC:
                         found_goal = True
                         goal.spawn_poi(self.search_area)
                         goal.reset()
+                        self.world.clear_observer_communication()
+                        for observer in self.agents_list[: self.n_observers]:
+                            observer.goal_estimation = None
+                            observer.goal_estimation_timestep = None
                         if self.rescuing_targets:
                             agent.carried_targets += 1
                 elif old_dists[goal] > new_dist_to_goal:

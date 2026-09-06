@@ -160,10 +160,14 @@ class Drone(BaseAgent):
         """
         action space: [wanted vx, wanted vy, recharge] where recharge is mapped to a bool for trying to recharge.
         """
-        self.observation_space = gymnasium.spaces.Box(low=-10000, high=10000, shape=(9 + self.number_of_drones * 2,))
+        self.observation_space = gymnasium.spaces.Box(
+            low=-10000, high=10000, shape=(11 + self.number_of_drones * 2,)
+        )
         """
-        observation space: [x, y, charge, x_base, y_base, d1.. d4, agents_rel_pos] where
-        [x,y] are the relative coordinates (capped at 100) communicated by the observer,
+        observation space: [x, y, communication_valid, communication_age, charge,
+        x_base, y_base, d1.. d4, agents_rel_pos] where
+        [x,y] are the relative coordinates (capped at 50) communicated by the observer,
+        communication_age is normalized by the maximum episode length,
         [x_base y_base] are the relative coordinates to the base center, and charge is its own charge level.
         [d1, d2, d3, d4] are the sensed distances to obstacles or boundaries
         in the East-North-West-South directions (capped to sensing_range),
@@ -349,11 +353,20 @@ class Drone(BaseAgent):
 
     def observe(self, world, agents, poi) -> np.array:
         """Observe the world."""
-        # goal and base observation
-        goal_x, goal_y = world.observer_communication
-        to_goal_x = np.clip((goal_x - self.x), -50, 50)
-        to_goal_y = np.clip((goal_y - self.y), -50, 50)
+        # goal observation
+        if world.observer_communication_valid:
+            goal_x, goal_y = world.observer_communication
+            to_goal_x = np.clip((goal_x - self.x), -50, 50)
+            to_goal_y = np.clip((goal_y - self.y), -50, 50)
+            communication_age = np.clip(
+                (world.timestep - world.observer_communication_timestep) / world.max_cycles, 0.0, 1.0
+            )
+        else:
+            to_goal_x = 0.0
+            to_goal_y = 0.0
+            communication_age = 0.0
 
+        # base observation
         base_x, base_y = game_ref_to_world_ref(world.base.center, world.area)
         to_base_x = np.clip((base_x - self.x), -50, 50)
         to_base_y = np.clip((base_y - self.y), -50, 50)
@@ -366,7 +379,18 @@ class Drone(BaseAgent):
             coord for agent in agents if isinstance(agent, Drone) for coord in (agent.x - self.x, agent.y - self.y)
         ]
 
-        obs = np.array([to_goal_x, to_goal_y, self.charge_level / self.max_charge, to_base_x, to_base_y], np.float32)
+        obs = np.array(
+            [
+                to_goal_x,
+                to_goal_y,
+                float(world.observer_communication_valid),
+                communication_age,
+                self.charge_level / self.max_charge,
+                to_base_x,
+                to_base_y,
+            ],
+            np.float32,
+        )
         obs = np.concatenate((obs, distances, agents_rel_pos), dtype=np.float32)
         return obs
 
