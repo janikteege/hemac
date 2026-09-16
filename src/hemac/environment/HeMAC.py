@@ -456,10 +456,10 @@ class HeMAC:
         agent.update(self.area, self.world, action)
 
         # Update position and uncertainty of objectives
-        # NOTE: this moves the goal per agent action which is a weird decision??
-        # does not make a lot of sense
-        for goal in self.goals:
-            goal.move(self.world.obstacles, self.search_area)
+        if self.agents[0] == active_agent:  # only update once for the first agent
+            for goal in self.goals:
+                print("goal moved")
+                goal.move(self.world.obstacles, self.search_area)
 
         # Specific actions for UAVs
         if "drone" in active_agent:
