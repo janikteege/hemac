@@ -73,7 +73,7 @@ class PointOfInterest:
         self.waypoints = self.get_waypoints()
 
         self.pause_interval = 5
-        self.step_counter = 0
+        self.step_counter = 0  # NOTE: unused?
 
     def get_waypoints(self) -> list | None:
         """Get waypoints."""
@@ -261,3 +261,4 @@ class PointOfInterest:
         self.expected_speed = None  # last_observed speed for position estimation
         self.potential_speed = 0  # maximum potential speed assuming a maximum acceleration for uncertainty tracking
         self.expected_orientation = None
+        self.orientation = self.randomizer.uniform() * np.pi * 2

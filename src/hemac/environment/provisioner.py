@@ -97,9 +97,12 @@ class Provisioner(BaseAgent):
     def reset(self, seed=None, options=None):
         """Reset Provisioner."""
         # start in random node
-        starting_node = np.random.randint(1, len(self.world.roads["nodes"]) + 1)
+        starting_node = self.randomizer.integers(1, len(self.world.roads["nodes"]) + 1)
         self.x = self.world.roads["nodes"][starting_node][0]
         self.y = self.world.roads["nodes"][starting_node][1]
+        self.last_node: int = None
+        self.current_edge: tuple = None
+        self.orientation = np.pi / 4
         self.world.provisioners[self.id] = (self.x, self.y)
         (self.rect.centerx, self.rect.centery) = world_ref_to_game_ref((self.x, self.y), self.world.area)
         self.sensor.update_poly_points((self.rect.centerx, self.rect.centery), self.orientation, self.altitude)

@@ -309,6 +309,19 @@ class HeMAC:
         if self.render_mode == "human":
             self.clock = pygame.time.Clock()
 
+    def _set_randomizer(self, randomizer):
+        self.randomizer = randomizer
+        self.world.randomizer = randomizer
+        for goal in self.goals:
+            goal.randomizer = randomizer
+        for agent in self.agents_list:
+            if isinstance(agent, Drone):
+                agent.randomizer = randomizer
+                agent.IMU.randomizer = randomizer
+                agent.UWB.randomizer = randomizer
+            if isinstance(agent, Provisioner):
+                agent.randomizer = randomizer
+
     def _get_sensor(self, sensor: dict) -> sensors.Sensor:
         """Instantiate a sensor from sensor dictionnary.
 
@@ -361,12 +374,14 @@ class HeMAC:
             self.world.generate_obstacles(num_obstacles)
 
         # reset agents to initial state
+        spawned_assets = []
         for agent, name in zip(self.agents_list, self.agents):
             if "drone" in name:
-                self.world.spawn_asset(agent, self.agents_list, avoid_world_obstacles=True, set_real_coordinates=True)
+                self.world.spawn_asset(agent, spawned_assets, avoid_world_obstacles=True, set_real_coordinates=True)
             elif "observer" in name:
-                self.world.spawn_asset(agent, self.agents_list, avoid_world_obstacles=False, set_real_coordinates=True)
+                self.world.spawn_asset(agent, spawned_assets, avoid_world_obstacles=False, set_real_coordinates=True)
             agent.reset()
+            spawned_assets.append(agent)
 
         self.terminate = False
         self.collided = False
@@ -660,7 +675,8 @@ class RawEnv(AECEnv, EzPickle):
         """Reset environment."""
         if seed is not None:
             self._seed(seed=seed)
-        self.env.randomizer = self.randomizer
+
+        self.env._set_randomizer(self.randomizer)
         self.env.reset()
         self.agents = self.possible_agents[:]
         self.agent_selection = self._agent_selector.reset()

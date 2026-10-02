@@ -73,7 +73,7 @@ class Drone(BaseAgent):
         drone_id=-1,
         sensor: Sensor = DownwardFacingCamera(0.7, 0.7),
         time_factor=0.8,
-        num_discrete_actions=5,
+        num_discrete_actions=5,  # NOTE: unused
     ):
         """Overwrite constructor."""
         super().__init__()
@@ -160,9 +160,7 @@ class Drone(BaseAgent):
         """
         action space: [wanted vx, wanted vy, recharge] where recharge is mapped to a bool for trying to recharge.
         """
-        self.observation_space = gymnasium.spaces.Box(
-            low=-10000, high=10000, shape=(11 + self.number_of_drones * 2,)
-        )
+        self.observation_space = gymnasium.spaces.Box(low=-10000, high=10000, shape=(11 + self.number_of_drones * 2,))
         """
         observation space: [x, y, communication_valid, communication_age, charge,
         x_base, y_base, d1.. d4, agents_rel_pos] where
@@ -180,6 +178,16 @@ class Drone(BaseAgent):
 
     def reset(self, seed=None, options=None):
         """Reset drone."""
+        # TODO: reset movement
+        self.vx = 0
+        self.vy = 0
+        self.accel_x = 0
+        self.accel_y = 0
+        self.previous_accel = [0, 0]
+        self.orientation = 0.0
+        self.goto_pos = [0, 0]
+        self.charging_point = (0, 0)
+        self.closest_point_in_base = closest_point_in_rect(self.world.base, self.rect.center)
         self.charge_level = self.max_charge
         self.charging = False
         self.out_of_bound = False

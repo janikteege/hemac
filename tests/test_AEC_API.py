@@ -20,7 +20,9 @@ class TestHemac:
 
     def test_max_cycles(self):
         """Test max cycles."""
-        tests.max_cycles_test(env_func)  # NOTE: this test will not pass if the episode is shorter than 4 steps, which sometimes happen by badluck.
+        tests.max_cycles_test(
+            env_func
+        )  # NOTE: this test will not pass if the episode is shorter than 4 steps, which sometimes happen by badluck.
 
     def test_render(self):
         """Test render."""
@@ -34,4 +36,5 @@ class TestHemac:
         """Test measure performance."""
         tests.performance_benchmark(my_env)
 
-# tests.seed_test(env_func.env, num_cycles=10)  # TODO: use generator in reset() for deterministic env
+    def test_pettingzoo_seed(self):
+        tests.seed_test(env_func.env, num_cycles=10)

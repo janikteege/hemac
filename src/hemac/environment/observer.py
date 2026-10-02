@@ -69,6 +69,8 @@ class Observer(BaseAgent):
 
     def reset(self, seed=None, options=None):
         """Reset observer."""
+        self.orientation = 0
+        # NOTE: maybe randomize orientation
         self.sensor.update_poly_points((self.rect.centerx, self.rect.centery), self.orientation, self.altitude)
         self.out_of_bound = False
         self.goal_in_view = False
