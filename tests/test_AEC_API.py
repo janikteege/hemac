@@ -1,6 +1,9 @@
 """Run_test test module."""
+
 import pettingzoo.test as tests
 from hemac import HeMAC_v0
+import pygame
+import pytest
 
 my_env = HeMAC_v0.env()
 env_func = HeMAC_v0
@@ -25,7 +28,9 @@ class TestHemac:
         )  # NOTE: this test will not pass if the episode is shorter than 4 steps, which sometimes happen by badluck.
 
     def test_render(self):
-        """Test render."""
+        """Test render. Will be skipped is video system is not available"""
+        if not pygame.display.get_init():
+            pytest.skip("Pygame video system is not available.")
         tests.render_test(env_func.env)
 
     def test_save_obs(self):
