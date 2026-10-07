@@ -10,25 +10,46 @@ class TestSeeding:
 
     @staticmethod
     def snapshot(env):
-        # TODO: get observations
-        # rewards
-        # etc.
+        """Get a snapshot of the current state of the environment. Is comparible via == with other snapshots.
+
+        Beware that getting a snapshot actually changes the environment
+        due to the observers observation setting the communication. So one should
+        always "snapshot equally" on the envs to compare.
+        """
         simulation: HeMAC = env.unwrapped.env
         return {
+            "rewards": dict(env.rewards),
+            "terminations": dict(env.terminations),
+            "truncations": dict(env.truncations),
+            "agent_selection": env.agent_selection,
             "pois": tuple((poi.x, poi.y, poi.orientation) for poi in simulation.goals),
             "agents": {
                 "drones": {
-                    agent_str: (agent.x, agent.y, agent.vx, agent.vy, agent.orientation, agent.carried_targets)
+                    agent_str: {
+                        "position": (agent.x, agent.y),
+                        "velocity": (agent.vx, agent.vy, agent.orientation),
+                        "carried_targets": agent.carried_targets,
+                        "observation": env.observe(agent_str).tolist(),
+                    }
                     for agent_str, agent in zip(simulation.agents, simulation.agents_list)
                     if isinstance(agent, Drone)
                 },
                 "observers": {
-                    agent_str: (agent.x, agent.y, agent.orientation)
+                    agent_str: {
+                        "position": (agent.x, agent.y),
+                        "orientation": agent.orientation,
+                        # NOTE: this actually modifies the env. not ideal, but ok.
+                        "observation": env.observe(agent_str).tolist(),
+                    }
                     for agent_str, agent in zip(simulation.agents, simulation.agents_list)
                     if isinstance(agent, Observer)
                 },
                 "provisioners": {
-                    agent_str: (agent.x, agent.y, agent.orientation)
+                    agent_str: {
+                        "position": (agent.x, agent.y),
+                        "orientation": agent.orientation,
+                        "observation": env.observe(agent_str).tolist(),
+                    }
                     for agent_str, agent in zip(simulation.agents, simulation.agents_list)
                     if isinstance(agent, Provisioner)
                 },
@@ -58,6 +79,7 @@ class TestSeeding:
         for _ in range(20):
             unwrapped = env.unwrapped.env
             current_agent = unwrapped.agents_list[unwrapped.agent_name_mapping[env.agent_selection]]
+            # NOTE: taking a random action may not be ideal for a reproducible test
             env.step(current_agent.action_space.sample())
 
         env.reset(42)
