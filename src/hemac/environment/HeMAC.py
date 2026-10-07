@@ -82,7 +82,7 @@ class HeMAC:
         provisioner_config: dict = None,
         provisioner_sensor: dict = None,  # TODO: move sensors in agent configs
         min_obstacles=2,
-        max_obstacles=3,
+        max_obstacles=2,
         rescuing_targets=False,
         known_goals=False,
         geofence_config: dict = None,
@@ -364,7 +364,7 @@ class HeMAC:
         # reset obstacles
         self.world.clear_obstacles()  # Clear obstacles at the start of each episode
         if self.max_obstacles > 0:  # TODO: reset all world components inside world reset() (obstacles, etc.)
-            num_obstacles = self.randomizer.integers(self.min_obstacles, self.max_obstacles)
+            num_obstacles = self.randomizer.integers(self.min_obstacles, self.max_obstacles + 1)
             self.world.generate_obstacles(num_obstacles)
 
         # reset goals

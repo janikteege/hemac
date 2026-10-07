@@ -76,7 +76,7 @@ class HeMACConfig:
     n_observers: int = 0
     n_drones: int = 2
     min_obstacles: int = 5
-    max_obstacles: int = 6
+    max_obstacles: int = 5
     known_goals: bool = False
     drone_config: DroneConfig = None
     geofence_config: GeofenceConfig = None

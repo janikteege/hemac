@@ -159,7 +159,7 @@ if __name__ == "__main__":
         n_drones=6,
         n_provisioners=0,
         min_obstacles=1,
-        max_obstacles=2,
+        max_obstacles=1,
         rescuing_targets=True,
         observer_comm_range=300,
         patrol_config={
