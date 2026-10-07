@@ -64,7 +64,7 @@ class World(pygame.sprite.Sprite):
         adjacency_list = build_adjacency_dict(nodes, edges)
         self.roads = {"nodes": nodes, "edges": edges, "adjacency_list": adjacency_list}
 
-    def reset(self, poi_list, seed=None, options=None):
+    def reset(self, seed=None, options=None):
         """Reset world."""
         self.timestep = 0
         self.clear_observer_communication()

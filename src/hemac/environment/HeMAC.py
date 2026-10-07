@@ -357,21 +357,23 @@ class HeMAC:
 
     def reset(self, seed=None, options=None):
         """Reset the environment."""
-        # reset goals
-        for goal in self.goals:
-            goal.spawn_poi(self.search_area)
-            goal.reset()
-
         if self.render_mode == "human":
             print("resetting world.")
-        self.world.reset(self.goals)
-        self.world.clear_obstacles()  # Clear obstacles at the start of each episode
-        self.detection_reward = 0
 
-        # spawn obstacles
+        self.world.reset()
+        # reset obstacles
+        self.world.clear_obstacles()  # Clear obstacles at the start of each episode
         if self.max_obstacles > 0:  # TODO: reset all world components inside world reset() (obstacles, etc.)
             num_obstacles = self.randomizer.integers(self.min_obstacles, self.max_obstacles)
             self.world.generate_obstacles(num_obstacles)
+
+        # reset goals
+        for goal in self.goals:
+            assert isinstance(goal, PointOfInterest)
+            goal.spawn_poi(self.search_area, self.world.obstacles)
+            goal.reset()
+
+        self.detection_reward = 0
 
         # reset agents to initial state
         spawned_assets = []
@@ -508,7 +510,8 @@ class HeMAC:
                         if self.first_target_reached_step is None:
                             self.first_target_reached_step = self.episode_cycles + 1
                         found_goal = True
-                        goal.spawn_poi(self.search_area)
+                        assert isinstance(goal, PointOfInterest)
+                        goal.spawn_poi(self.search_area, self.world.obstacles)
                         goal.reset()
                         self.world.clear_observer_communication()
                         for observer in self.agents_list[: self.n_observers]:

@@ -105,7 +105,11 @@ class PointOfInterest:
         return None
 
     def spawn_poi(self, area, obstacles=None) -> list:
-        """Spawn POI randomly inside patrolling area."""
+        """Spawn POI randomly inside patrolling area.
+
+        Tries a fixed amount of times. After that an invalid spawn location
+        is used and a message printed.
+        """
         pos = [0, 0]
         max_attempts = 1000  # maximum number of attempts to avoid infinite loops
         attempts = 0
