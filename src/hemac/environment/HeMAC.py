@@ -59,6 +59,28 @@ FPS = 15
 __all__ = ["env", "RawEnv", "parallel_env"]
 
 
+def action_encoding_size(space):
+    if isinstance(space, gymnasium.spaces.Discrete):
+        return space.n
+    if isinstance(space, gymnasium.spaces.Box):
+        return int(np.prod(space.shape))
+    raise NotImplementedError("Unsupported Action Space")
+
+
+def encode_action(action, space):
+    encoded = np.zeros(action_encoding_size(space), dtype=np.float32)
+
+    if action is None:
+        return encoded
+    if isinstance(space, gymnasium.spaces.Discrete):
+        encoded[int(action) - space.start] = 1.0
+        return encoded
+    if isinstance(space, gymnasium.spaces.Box):
+        return np.asarray(action, dtype=np.float32).reshape(-1)
+
+    raise NotImplementedError("Unsupported Action Space")
+
+
 class HeMAC:
     """HeMAC environment."""
 
@@ -287,6 +309,8 @@ class HeMAC:
         LOGGER.info(f"action spaces: {self.action_spaces}")
         LOGGER.info(f"observation spaces: {self.observation_spaces}")
 
+        self.last_actions = {agent: None for agent in self.agents}
+
         # define the global space of the environment or state
         self.state_space = gymnasium.spaces.MultiBinary(2)
         self.min_obstacles = min_obstacles
@@ -385,6 +409,7 @@ class HeMAC:
             agent.reset()
             spawned_assets.append(agent)
 
+        self.last_actions = {agent: None for agent in self.agents}
         self.terminate = False
         self.collided = False
         self.truncate = False
@@ -442,8 +467,35 @@ class HeMAC:
 
     def state(self):
         """Return an observation of the global environment."""
-        state = np.array([0, 0])
-        return state
+        state = []
+        # Agent States
+        for agent_name in self.agents:
+            agent = self.agents_list[self.agent_name_mapping[agent_name]]
+            agent_state = [
+                # Normalized Position
+                agent.x / self.world.area.width,
+                agent.y / self.world.area.height,
+                # One-Hot Encoding of Agent Type
+                1 if isinstance(agent, Drone) else 0,
+                1 if isinstance(agent, Observer) else 0,
+                1 if isinstance(agent, Provisioner) else 0,
+            ]
+            state.extend(agent_state)
+        # Target States
+        for goal in self.goals:
+            assert isinstance(goal, PointOfInterest)
+            assert goal.x is not None and goal.y is not None
+            goal_state = [
+                goal.x / self.world.area.width,
+                goal.y / self.world.area.height,
+            ]
+        # Last Actions
+        for agent_name in self.agents:
+            last_action = self.last_actions[agent_name]
+            agent = self.agents_list[self.agent_name_mapping[agent_name]]
+            state.extend(encode_action(last_action, agent.action_space))
+
+        return np.array(state)
 
     def draw(self):
         """Draw the environment."""
@@ -471,6 +523,8 @@ class HeMAC:
             old_dists[goal] = dist(goal.x, goal.y, agent.x, agent.y)
 
         agent.update(self.area, self.world, action)
+
+        self.last_actions[active_agent] = action
 
         # Update position and uncertainty of objectives
         if self.agents[0] == active_agent:  # only update once for the first agent
