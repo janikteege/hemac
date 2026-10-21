@@ -97,6 +97,7 @@ class Drone(BaseAgent):
             ]
             dims = [math.ceil(pixel_to_meter_ref * dims_meters[0]), math.ceil(pixel_to_meter_ref * dims_meters[1])]
             self.max_speed = drone_config.get("drone_max_speed", 16)
+            self.action_scheme = drone_config.get("action_scheme", "default5")
             self.max_thrust = drone_config.get("drone_max_thrust", 4)
             self.altitude = drone_config.get("drone_altitude", 30)
             self.max_charge = drone_config.get("drone_max_charge", 9999)
@@ -122,6 +123,7 @@ class Drone(BaseAgent):
             self.max_thrust = 4
             self.altitude = 30
             self.max_charge = 60 * 32
+            self.action_scheme = "default5"
 
         self.img = pygame.transform.scale(
             pygame.image.load(f"{os.path.dirname(__file__)}/img/drone.png"), [ui_dims, ui_dims]
@@ -151,8 +153,15 @@ class Drone(BaseAgent):
         self.number_of_drones = number_of_drones
 
         if drone_config.get("discrete_action_space", False):
-            self.action_space = gymnasium.spaces.Discrete(10)
             self.discrete_action_space = True
+            if self.action_scheme == "default5":
+                self.action_space = gymnasium.spaces.Discrete(5)
+            elif self.action_scheme == "speeds10":
+                self.action_space = gymnasium.spaces.Discrete(10)
+            elif self.action_scheme == "directions10":
+                self.action_space = gymnasium.spaces.Discrete(10)
+            else:
+                raise NotImplementedError("This action scheme is not supported.")
         else:
             self.action_space = gymnasium.spaces.Box(low=-self.max_speed, high=self.max_speed, shape=(3,))
             self.discrete_action_space = False
@@ -316,29 +325,72 @@ class Drone(BaseAgent):
 
     def discrete_to_continuous(self, action):
         """Convert discrete action to box space."""
-        assert action >= 0 and action <= 9
-        out = [0, 0, 0]
-        if action == 0:
-            out = [0, 0, 1]
-        elif action == 1:
-            out = [10, 10, 0]
-        elif action == 2:
-            out = [10, -10, 0]
-        elif action == 3:
-            out = [-10, 10, 0]
-        elif action == 4:
-            out = [-10, -10, 0]
-        # NOTE: add actions for more fine grained control
-        elif action == 5:
-            out = [3, 3, 0]
-        elif action == 6:
-            out = [3, -3, 0]
-        elif action == 7:
-            out = [-3, 3, 0]
-        elif action == 8:
-            out = [-3, -3, 0]
-        elif action == 9:
-            out = [0, 0, 0]
+        out = None
+        # calculate max speed for diagonal movements
+        diagonal_speed = math.sqrt(0.5 * self.max_speed * self.max_speed)
+        if self.action_scheme == "default5":
+            assert 0 <= action < 5
+            if action == 0:
+                out = [0, 0, 1]
+            elif action == 1:
+                out = [diagonal_speed, diagonal_speed, 0]
+            elif action == 2:
+                out = [diagonal_speed, -diagonal_speed, 0]
+            elif action == 3:
+                out = [-diagonal_speed, diagonal_speed, 0]
+            elif action == 4:
+                out = [-diagonal_speed, -diagonal_speed, 0]
+        elif self.action_scheme == "speeds10":
+            assert 0 <= action < 10
+            slow_diagonal_speed = 0.3 * diagonal_speed
+            if action == 0:
+                out = [0, 0, 1]
+            elif action == 1:
+                out = [diagonal_speed, diagonal_speed, 0]
+            elif action == 2:
+                out = [diagonal_speed, -diagonal_speed, 0]
+            elif action == 3:
+                out = [-diagonal_speed, diagonal_speed, 0]
+            elif action == 4:
+                out = [-diagonal_speed, -diagonal_speed, 0]
+            elif action == 5:
+                out = [slow_diagonal_speed, slow_diagonal_speed, 0]
+            elif action == 6:
+                out = [slow_diagonal_speed, -slow_diagonal_speed, 0]
+            elif action == 7:
+                out = [-slow_diagonal_speed, slow_diagonal_speed, 0]
+            elif action == 8:
+                out = [-slow_diagonal_speed, -slow_diagonal_speed, 0]
+            elif action == 9:
+                out = [0, 0, 0]
+        elif self.action_scheme == "directions10":
+            assert 0 <= action < 10
+            speed = self.max_speed
+            if action == 0:
+                out = [0, 0, 1]
+            elif action == 1:
+                out = [diagonal_speed, diagonal_speed, 0]
+            elif action == 2:
+                out = [diagonal_speed, -diagonal_speed, 0]
+            elif action == 3:
+                out = [-diagonal_speed, diagonal_speed, 0]
+            elif action == 4:
+                out = [-diagonal_speed, -diagonal_speed, 0]
+            elif action == 5:
+                out = [speed, 0, 0]
+            elif action == 6:
+                out = [-speed, 0, 0]
+            elif action == 7:
+                out = [0, speed, 0]
+            elif action == 8:
+                out = [0, -speed, 0]
+            elif action == 9:
+                out = [0, 0, 0]
+
+        else:
+            raise NotImplementedError(f"action_scheme {self.action_scheme} is not supported.")
+        if out is None:
+            raise ValueError("Could not convert discrete action to continuous")
         return out
 
     def process_collision(self, o_rect, o_speed):
