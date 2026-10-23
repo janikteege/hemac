@@ -47,7 +47,7 @@ class Observer(BaseAgent):
         self.sensor = sensor
 
         if discrete_action_space:
-            self.action_space = gymnasium.spaces.Discrete(10)
+            self.action_space = gymnasium.spaces.Discrete(3)
             self.discrete_action_space = True
         else:
             self.action_space = gymnasium.spaces.Box(low=-100, high=100, shape=(3,))
@@ -134,13 +134,16 @@ class Observer(BaseAgent):
 
     def discrete_to_continuous(self, action):
         """Convert discrete action to box space."""
-        assert action >= 0 and action <= 9
+        out = None
+        assert 0 <= action < 3
         if action == 0:
             out = [1, 0, 0]
         elif action == 1:
             out = [-1, 0, 0]
-        else:  # 2-9 to have the same action space as the drone
+        elif action == 2:
             out = [0, 0, 0]
+        else:
+            raise ValueError("Could not convert discrete action to continuous")
         return out
 
     def process_collision(self, o_rect, o_speed):
