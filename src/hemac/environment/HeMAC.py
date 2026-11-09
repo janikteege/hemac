@@ -600,7 +600,6 @@ class HeMAC:
         # Update position and uncertainty of objectives
         if self.agents[0] == active_agent:  # only update once for the first agent
             for goal in self.goals:
-                print("goal moved")
                 goal.move(self.world.obstacles, self.search_area)
 
         # Specific actions for UAVs
